@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Bank Customer Churn Prediction – AI-powered dashboard to predict which customers are at risk of leaving using a Gradient Boosting model with 86.6% accuracy." />
+  <meta name="keywords" content="bank churn prediction, customer retention, machine learning, gradient boosting, FastAPI" />
+  <title>Bank Churn Prediction · Dashboard</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏦</text></svg>" />
+</head>
+<body>
+
+<!-- ── Hero ─────────────────────────────────────────────────────────────── -->
+<header class="hero">
+  <div class="hero-content">
+    <div class="hero-icon-wrap">
+      <div class="hero-icon">🏦</div>
+    </div>
+    <h1>Bank Customer <span>Churn Prediction</span></h1>
+    <p>AI-powered customer retention intelligence using Gradient Boosting — identify at-risk customers before they leave</p>
+    <div class="hero-badges">
+      <span class="badge badge-gold">✦ 86.6% Accuracy</span>
+      <span class="badge badge-white">⚡ Gradient Boosting</span>
+      <span class="badge badge-green">✅ 10,000 Customers</span>
+      <span class="badge badge-red">⚠ Churn Detection</span>
+      <span class="badge badge-blue">🔗 REST API</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── Navigation ───────────────────────────────────────────────────────── -->
+<nav class="nav" role="navigation" aria-label="Dashboard navigation">
+  <button class="nav-btn active" data-tab="predict"    id="nav-predict">🔮 Predict</button>
+  <button class="nav-btn"        data-tab="history"    id="nav-history">🕓 History</button>
+  <button class="nav-btn"        data-tab="model"      id="nav-model">📊 Model Info</button>
+
+  <div style="flex:1"></div>
+  <div style="display:flex;align-items:center;gap:8px;padding:0 8px;font-size:0.78rem;color:var(--text-muted)">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">Checking…</span>
+  </div>
+</nav>
+
+<!-- ── Main Content ──────────────────────────────────────────────────────── -->
+<main class="container">
+
+  <!-- ╔═ TAB: Predict ════════════════════════════════════════════════════╗ -->
+  <section class="tab-panel active" id="tab-predict">
+
+    <!-- Session Stats Row -->
+    <div class="stats-grid">
+      <div class="stat-card stat-navy">
+        <span class="stat-label">Total Predictions</span>
+        <span class="stat-value" id="stat-total">0</span>
+        <span class="stat-sub">this session</span>
+      </div>
+      <div class="stat-card stat-red">
+        <span class="stat-label">Churn Detected</span>
+        <span class="stat-value" id="stat-churn">0</span>
+        <span class="stat-sub" id="stat-churn-pct">0% rate</span>
+      </div>
+      <div class="stat-card stat-green">
+        <span class="stat-label">Retained</span>
+        <span class="stat-value" id="stat-retained">0</span>
+        <span class="stat-sub" id="stat-retained-pct">0% rate</span>
+      </div>
+      <div class="stat-card stat-gold">
+        <span class="stat-label">Model Accuracy</span>
+        <span class="stat-value">86.6%</span>
+        <span class="stat-sub">on test set</span>
+      </div>
+    </div>
+
+    <!-- Predict Grid: Form + Result -->
+    <div class="predict-grid">
+
+      <!-- Left: Customer Input Form -->
+      <div class="card">
+        <p class="card-title">Customer Profile</p>
+
+        <!-- Sample customers -->
+        <div style="margin-bottom:20px">
+          <p style="font-size:0.78rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Quick Fill — Sample Customers</p>
+          <div class="sample-chips">
+            <button class="sample-chip" id="sample-safe" data-sample="safe">✅ Safe Customer</button>
+            <button class="sample-chip" id="sample-risk" data-sample="risk">⚠️ At-Risk Customer</button>
+            <button class="sample-chip" id="sample-critical" data-sample="critical">🚨 Critical Risk</button>
+          </div>
+        </div>
+
+        <!-- Personal Details -->
+        <p class="form-section-label">👤 Personal Details</p>
+        <div class="form-grid">
+          <div class="input-group">
+            <label for="input-age">Age</label>
+            <div class="slider-wrap">
+              <div class="slider-row">
+                <input type="range" id="input-age" min="18" max="92" value="42" step="1" aria-label="Customer age" />
+                <span class="slider-val" id="val-age">42</span>
+              </div>
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="input-geography">Country</label>
+            <select id="input-geography" aria-label="Customer country">
+              <option value="France">🇫🇷 France</option>
+              <option value="Germany">🇩🇪 Germany</option>
+              <option value="Spain">🇪🇸 Spain</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="input-gender">Gender</label>
+            <select id="input-gender" aria-label="Customer gender">
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="input-credit-score">Credit Score</label>
+            <div class="slider-wrap">
+              <div class="slider-row">
+                <input type="range" id="input-credit-score" min="300" max="850" value="619" step="1" aria-label="Credit score" />
+                <span class="slider-val" id="val-credit-score">619</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Details -->
+        <p class="form-section-label">🏦 Account Details</p>
+        <div class="form-grid">
+          <div class="input-group">
+            <label for="input-tenure">Tenure (years)</label>
+            <div class="slider-wrap">
+              <div class="slider-row">
+                <input type="range" id="input-tenure" min="0" max="10" value="2" step="1" aria-label="Account tenure in years" />
+                <span class="slider-val" id="val-tenure">2 yrs</span>
+              </div>
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="input-products">No. of Products</label>
+            <div class="slider-wrap">
+              <div class="slider-row">
+                <input type="range" id="input-products" min="1" max="4" value="1" step="1" aria-label="Number of bank products" />
+                <span class="slider-val" id="val-products">1</span>
+              </div>
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="input-balance">Account Balance (€)</label>
+            <input type="number" id="input-balance" value="0" min="0" max="300000" step="100" aria-label="Account balance" placeholder="0.00" />
+          </div>
+          <div class="input-group">
+            <label for="input-salary">Estimated Salary (€)</label>
+            <input type="number" id="input-salary" value="101348" min="0" max="250000" step="500" aria-label="Estimated salary" placeholder="100000" />
+          </div>
+        </div>
+
+        <!-- Membership -->
+        <p class="form-section-label">🪪 Membership Status</p>
+        <div class="form-grid">
+          <div class="input-group">
+            <label>Credit Card</label>
+            <div class="toggle-wrap">
+              <label class="toggle">
+                <input type="checkbox" id="input-credit-card" checked aria-label="Has credit card" />
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label" id="label-credit-card">Has Credit Card</span>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Active Member</label>
+            <div class="toggle-wrap">
+              <label class="toggle">
+                <input type="checkbox" id="input-active-member" checked aria-label="Is active member" />
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label" id="label-active-member">Active Member</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="predict-btn" aria-label="Run churn prediction">
+          <div class="spinner" id="predict-spinner"></div>
+          <span class="btn-text" id="predict-btn-text">🔮 Predict Churn Risk</span>
+        </button>
+      </div>
+
+      <!-- Right: Result Panel -->
+      <div>
+        <!-- Result (hidden by default) -->
+        <div id="result-panel-wrap" style="display:none">
+          <div class="result-panel" id="result-panel">
+            <div class="result-header" id="result-header">
+              <div class="result-icon-big" id="result-icon">🔮</div>
+              <div class="result-verdict" id="result-verdict">—</div>
+              <div class="result-sub" id="result-sub">—</div>
+            </div>
+
+            <div class="gauge-wrap">
+              <div class="gauge-label-row">
+                <span>Churn Probability</span>
+                <span id="gauge-pct-label">—</span>
+              </div>
+              <div class="gauge-bar">
+                <div class="gauge-fill" id="gauge-fill"></div>
+              </div>
+            </div>
+
+            <div class="risk-badge-wrap">
+              <span class="risk-badge" id="risk-badge">— Risk Level</span>
+            </div>
+
+            <div class="result-meta">
+              <div class="result-meta-item">
+                <span class="result-meta-label">Churn Prob.</span>
+                <span class="result-meta-value" id="meta-churn-prob">—</span>
+              </div>
+              <div class="result-meta-item">
+                <span class="result-meta-label">Retain Prob.</span>
+                <span class="result-meta-value" id="meta-retain-prob">—</span>
+              </div>
+              <div class="result-meta-item">
+                <span class="result-meta-label">Process Time</span>
+                <span class="result-meta-value" id="meta-time">—</span>
+              </div>
+              <div class="result-meta-item">
+                <span class="result-meta-label">Timestamp</span>
+                <span class="result-meta-value" id="meta-timestamp">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Placeholder -->
+        <div class="result-placeholder" id="result-placeholder">
+          <div class="result-placeholder-icon">🏦</div>
+          <p>Fill in the customer profile and click <strong>Predict Churn Risk</strong> to see the AI analysis</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+  <!-- ╚════════════════════════════════════════════════════════════════════╝ -->
+
+
+  <!-- ╔═ TAB: History ═════════════════════════════════════════════════════╗ -->
+  <section class="tab-panel" id="tab-history">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
+        <p class="card-title" style="margin-bottom:0">Prediction History</p>
+        <button class="btn btn-secondary btn-sm" id="history-clear">🗑️ Clear History</button>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state" id="history-empty">
+        <div class="empty-state-icon">📋</div>
+        <p>No predictions yet — run a prediction to see the history here.</p>
+      </div>
+
+      <!-- History table -->
+      <div class="table-wrapper" id="history-wrapper" style="display:none">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Geography</th>
+              <th>Age</th>
+              <th>Credit Score</th>
+              <th>Balance</th>
+              <th>Result</th>
+              <th>Churn Prob.</th>
+              <th>Risk</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="history-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  <!-- ╚════════════════════════════════════════════════════════════════════╝ -->
+
+
+  <!-- ╔═ TAB: Model Info ══════════════════════════════════════════════════╗ -->
+  <section class="tab-panel" id="tab-model">
+
+    <!-- Overview grid -->
+    <div class="card">
+      <p class="card-title">Model Overview</p>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-key">Algorithm</div>
+          <div class="info-val navy">Gradient Boosting Classifier</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Test Accuracy</div>
+          <div class="info-val green">86.6%</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Dataset</div>
+          <div class="info-val">Churn Modelling (10,000 rows)</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Train / Test Split</div>
+          <div class="info-val">80% / 20%</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">n_estimators</div>
+          <div class="info-val gold">100</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Learning Rate</div>
+          <div class="info-val">0.1</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Max Depth</div>
+          <div class="info-val">3</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Random State</div>
+          <div class="info-val">42</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="card section-gap">
+      <p class="card-title">Performance Metrics</p>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-key">Overall Accuracy</div>
+          <div class="info-val green">86.6%</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Retained Precision</div>
+          <div class="info-val">88%</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Retained Recall</div>
+          <div class="info-val">96%</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Retained F1-Score</div>
+          <div class="info-val">92%</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Churn Precision</div>
+          <div class="info-val">76%</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Churn Recall</div>
+          <div class="info-val red">47%</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Churn F1-Score</div>
+          <div class="info-val">58%</div>
+        </div>
+        <div class="info-item">
+          <div class="info-key">Test Set Size</div>
+          <div class="info-val">2,000 customers</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature Importance -->
+    <div class="card section-gap">
+      <p class="card-title">Feature Importance</p>
+      <div class="feat-bar-list" id="feat-bar-list">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- Confusion Matrix -->
+    <div class="card section-gap">
+      <p class="card-title">Confusion Matrix (Test Set)</p>
+      <div style="overflow-x:auto">
+        <table style="max-width:380px;margin:0 auto">
+          <thead>
+            <tr>
+              <th></th>
+              <th style="color:var(--accent-green)">Predicted: Retained</th>
+              <th style="color:var(--accent-red)">Predicted: Churned</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:700;color:var(--accent-green)">Actual: Retained</td>
+              <td style="font-weight:700;color:var(--accent-green);font-size:1.1rem;font-family:'JetBrains Mono',monospace">1,547</td>
+              <td style="font-weight:600;color:var(--text-muted);font-family:'JetBrains Mono',monospace">60</td>
+            </tr>
+            <tr>
+              <td style="font-weight:700;color:var(--accent-red)">Actual: Churned</td>
+              <td style="font-weight:600;color:var(--text-muted);font-family:'JetBrains Mono',monospace">208</td>
+              <td style="font-weight:700;color:var(--accent-red);font-size:1.1rem;font-family:'JetBrains Mono',monospace">185</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="card section-gap">
+      <p class="card-title">ML Pipeline</p>
+      <div class="pipeline">
+        <span class="badge badge-blue">Raw CSV Data</span>
+        <span class="pipeline-arrow">→</span>
+        <span class="badge badge-purple">Drop Irrelevant Cols</span>
+        <span class="pipeline-arrow">→</span>
+        <span class="badge badge-gold">Label Encoding</span>
+        <span class="pipeline-arrow">→</span>
+        <span class="badge badge-white">80/20 Split</span>
+        <span class="pipeline-arrow">→</span>
+        <span class="badge badge-blue">GradientBoostingClassifier</span>
+        <span class="pipeline-arrow">→</span>
+        <span class="badge badge-green">Churn / Retained</span>
+      </div>
+    </div>
+
+    <!-- API Reference -->
+    <div class="card section-gap">
+      <p class="card-title">API Reference</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="api-row">
+          <span class="api-method-post">POST</span>
+          <span class="api-path">/predict</span>
+          <span class="api-desc">Predict churn for a single customer</span>
+        </div>
+        <div class="api-row">
+          <span class="api-method-get">GET</span>
+          <span class="api-path">/health</span>
+          <span class="api-desc">Health check &amp; model status</span>
+        </div>
+        <div class="api-row">
+          <span class="api-method-get">GET</span>
+          <span class="api-path">/stats</span>
+          <span class="api-desc">Session prediction statistics</span>
+        </div>
+        <div class="api-row">
+          <span class="api-method-get">GET</span>
+          <span class="api-path">/docs</span>
+          <span class="api-desc">Interactive Swagger UI</span>
+        </div>
+        <div class="api-row">
+          <span class="api-method-get">GET</span>
+          <span class="api-path">/redoc</span>
+          <span class="api-desc">ReDoc API documentation</span>
+        </div>
+      </div>
+    </div>
+
+  </section>
+  <!-- ╚════════════════════════════════════════════════════════════════════╝ -->
+
+</main>
+
+<!-- ── Toast Container ───────────────────────────────────────────────────── -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="/static/js/app.js"></script>
+
+</body>
+</html>
